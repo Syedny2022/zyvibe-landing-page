@@ -1,0 +1,5 @@
+{
+  "name": "Zyvibe Landing Page",
+  "description": "A high-conversion 3D animated landing page for Zyvibe with voice interaction and lead capture.",
+  "requestFramePermissions": ["microphone"]
+}
