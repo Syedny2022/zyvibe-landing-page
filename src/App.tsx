@@ -37,6 +37,46 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
 
+  // Supabase newsletter capture
+  const SUPA_URL = 'https://fykcaeuswikyjrjerxns.supabase.co';
+  const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5a2NhZXVzd2lreWpyamVyeG5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MjA5NTksImV4cCI6MjA4OTQ5Njk1OX0.No6HEpwviOZmbZtCrRwTUxDZ4d1tmjDQM-sWU_EKUf4';
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterStatus, setNewsletterStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsletterEmail) return;
+    setNewsletterStatus('submitting');
+    try {
+      const res = await fetch(SUPA_URL + '/rest/v1/email_subscribers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPA_KEY,
+          'Authorization': 'Bearer ' + SUPA_KEY,
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({
+          email: newsletterEmail,
+          source: 'zyvibe.com-footer',
+          subscribed_at: new Date().toISOString()
+        })
+      });
+      if (res.ok || res.status === 409) {
+        setNewsletterStatus('success');
+        setNewsletterEmail('');
+        if (typeof (window as any).gtag !== 'undefined') {
+          (window as any).gtag('event', 'newsletter_signup', { source: 'footer' });
+        }
+      } else {
+        setNewsletterStatus('error');
+      }
+    } catch {
+      setNewsletterStatus('error');
+    }
+    setTimeout(() => setNewsletterStatus('idle'), 5000);
+  };
+
   // contact form state
   const [contactName, setContactName] = useState('');
   const [contactEmail, setContactEmail] = useState('');
@@ -672,28 +712,46 @@ export default function App() {
               </ul>
             </div>
 
-            {/* Column 4 */}
+            {/* Column 4 — Newsletter Capture (Supabase) */}
             <div className="flex flex-col gap-6">
               <h4 className="text-[11px] font-bold text-white uppercase tracking-widest">Stay in the loop</h4>
               <p className="text-sm text-slate-400 font-medium leading-relaxed">
                 Get AI automation tips and product updates weekly.
               </p>
-              <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-3">
-                <input 
-                  type="email" 
-                  placeholder="you@example.com" 
-                  aria-label="Email address for updates"
-                  required
-                  className="px-4 py-2.5 rounded-lg bg-white/[0.03] border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-[#7c3aed]/50 transition-colors"
-                />
-                <button 
-                  type="submit" 
-                  aria-label="Join newsletter"
-                  className="w-full py-2.5 rounded-lg bg-[#7c3aed] text-white text-[11px] font-bold uppercase tracking-widest hover:bg-[#6d28d9] transition-all cursor-pointer shadow-[0_4px_15px_rgba(124,58,237,0.3)]"
-                >
-                  Join Now
-                </button>
-              </form>
+              {newsletterStatus === 'success' ? (
+                <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-bold">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>You're in! Check your inbox.</span>
+                </div>
+              ) : (
+                <form onSubmit={handleNewsletterSubmit} className="flex flex-col gap-3">
+                  <input 
+                    type="email" 
+                    placeholder="you@example.com" 
+                    aria-label="Email address for updates"
+                    required
+                    value={newsletterEmail}
+                    onChange={(e) => setNewsletterEmail(e.target.value)}
+                    disabled={newsletterStatus === 'submitting'}
+                    className="px-4 py-2.5 rounded-lg bg-white/[0.03] border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-[#7c3aed]/50 transition-colors disabled:opacity-50"
+                  />
+                  {newsletterStatus === 'error' && (
+                    <p className="text-red-400 text-[10px] font-medium">Something went wrong. Please try again.</p>
+                  )}
+                  <button 
+                    type="submit" 
+                    aria-label="Join newsletter"
+                    disabled={newsletterStatus === 'submitting'}
+                    className="w-full py-2.5 rounded-lg bg-[#7c3aed] text-white text-[11px] font-bold uppercase tracking-widest hover:bg-[#6d28d9] transition-all cursor-pointer shadow-[0_4px_15px_rgba(124,58,237,0.3)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {newsletterStatus === 'submitting' ? (
+                      <><Loader2 className="w-3 h-3 animate-spin" /><span>Joining...</span></>
+                    ) : (
+                      <span>Join Now</span>
+                    )}
+                  </button>
+                </form>
+              )}
             </div>
 
           </div>
