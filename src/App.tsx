@@ -27,7 +27,7 @@ const FAQS = [
   },
   {
     q: "How do I get support?",
-    a: "Email us at support@zyvibe.com or reach us on Twitter @ZyvibeHQ. Pro and Enterprise users get priority 24/7 support via live chat."
+    a: "Email us at support@zyvibe.co or reach us on Twitter @ZyvibeHQ. Pro and Enterprise users get priority 24/7 support via live chat."
   }
 ];
 
@@ -603,9 +603,9 @@ export default function App() {
             </form>
 
             <div className="mt-10 pt-8 border-t border-white/5 flex flex-col sm:flex-row justify-center items-center gap-6 sm:gap-12 text-xs text-slate-500 font-bold uppercase tracking-widest">
-              <a href="mailto:support@zyvibe.com" className="flex items-center gap-2 hover:text-white transition-colors">
+              <a href="mailto:support@zyvibe.co" className="flex items-center gap-2 hover:text-white transition-colors">
                 <Mail className="w-4 h-4 text-brand-purple" />
-                <span>support@zyvibe.com</span>
+                <span>support@zyvibe.co</span>
               </a>
               <a href="https://twitter.com/ZyvibeHQ" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-white transition-all">
                 <Twitter className="w-4 h-4 text-brand-purple" />
