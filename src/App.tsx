@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, ArrowRight, ShieldCheck, Zap, Globe, Lock, BarChart3, Calendar, Users, MessageSquare, LogOut, User, Menu, X, Linkedin, Twitter, Instagram, Youtube, ChevronDown, ChevronUp, Mail, Loader2, CheckCircle2 } from 'lucide-react';
+import { Sparkles, ArrowRight, ShieldCheck, Zap, Globe, Lock, LogOut, User, Menu, X, Linkedin, Twitter, Instagram, Youtube, ChevronDown, ChevronUp, Mail, Loader2, CheckCircle2 } from 'lucide-react';
 import { auth, googleProvider, db } from './firebase';
 import { signInWithPopup, onAuthStateChanged, signOut, User as FirebaseUser } from 'firebase/auth';
 import { collection, addDoc } from 'firebase/firestore';
@@ -160,18 +160,14 @@ export default function App() {
       <nav className="sticky top-0 left-0 right-0 z-[9999] px-6 py-4 bg-bg-main/60 backdrop-blur-xl border-b border-white/[0.08]">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-brand-purple rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(124,58,237,0.4)]">
-              <Sparkles className="w-5 h-5 text-white" strokeWidth={1.5} />
-            </div>
-            <span className="text-xl font-bold tracking-tightest text-white">Zyvibe</span>
+            <span style={{ fontWeight: 800, fontSize: 24, letterSpacing: -1, color: '#ffffff' }}>Zyvibe</span>
           </div>
           
           <div className="hidden lg:flex items-center gap-8 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
-            <a href="#" aria-label="Product Page" className="hover:text-white transition-colors">Product</a>
-            <a href="#" aria-label="Solutions" className="hover:text-white transition-colors">Solutions</a>
-            <a href="#" aria-label="Pricing Plans" className="hover:text-white transition-colors">Pricing</a>
-            <a href="#" aria-label="About Us" className="hover:text-white transition-colors">About</a>
-            <a href="#" aria-label="Contact Us" className="hover:text-white transition-colors">Contact</a>
+            <a href="https://app.zyvibe.com/?utm_source=zyvibe_home&utm_medium=header" className="hover:text-white transition-colors">Website Builder</a>
+            <a href="https://seo.zyvibe.com/?utm_source=zyvibe_home&utm_medium=header" className="hover:text-white transition-colors">SEO Auditor</a>
+            <a href="https://blog.zyvibe.com" className="hover:text-white transition-colors">Playbooks</a>
+            <a href="https://zyvibe.com/affiliates" className="hover:text-white transition-colors">Affiliate Program</a>
           </div>
           
           <div className="flex items-center gap-4">
@@ -220,13 +216,13 @@ export default function App() {
                     >
                       Sign In
                     </button>
-                    <button 
-                      onClick={handleSignIn}
-                      aria-label="Get Started"
+                    <a 
+                      href="https://zyvibe.com/affiliates?utm_source=zyvibe_home&utm_medium=header_cta"
+                      aria-label="Start Free Today"
                       className="bg-[#7c3aed] text-white text-[11px] font-bold uppercase tracking-[0.1em] py-2 px-4 rounded-lg hover:bg-[#6d28d9] transition-all cursor-pointer shadow-[0_4px_20px_rgba(124,58,237,0.35)]"
                     >
-                      Get Started
-                    </button>
+                      Start Free Today
+                    </a>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -255,11 +251,10 @@ export default function App() {
             >
               <div className="px-6 py-8 flex flex-col gap-6">
                 <div className="flex flex-col gap-4 text-sm font-semibold tracking-wider text-slate-300">
-                  <a href="#" aria-label="Product Page" onClick={() => setMobileMenuOpen(false)} className="hover:text-white transition-colors py-2 border-b border-white/5">Product</a>
-                  <a href="#" aria-label="Solutions" onClick={() => setMobileMenuOpen(false)} className="hover:text-white transition-colors py-2 border-b border-white/5">Solutions</a>
-                  <a href="#" aria-label="Pricing Plans" onClick={() => setMobileMenuOpen(false)} className="hover:text-white transition-colors py-2 border-b border-white/5">Pricing</a>
-                  <a href="#" aria-label="About Us" onClick={() => setMobileMenuOpen(false)} className="hover:text-white transition-colors py-2 border-b border-white/5">About</a>
-                  <a href="#" aria-label="Contact Us" onClick={() => setMobileMenuOpen(false)} className="hover:text-white transition-colors py-2">Contact</a>
+                  <a href="https://app.zyvibe.com/?utm_source=zyvibe_home&utm_medium=header" onClick={() => setMobileMenuOpen(false)} className="hover:text-white transition-colors py-2 border-b border-white/5">Website Builder</a>
+                  <a href="https://seo.zyvibe.com/?utm_source=zyvibe_home&utm_medium=header" onClick={() => setMobileMenuOpen(false)} className="hover:text-white transition-colors py-2 border-b border-white/5">SEO Auditor</a>
+                  <a href="https://blog.zyvibe.com" onClick={() => setMobileMenuOpen(false)} className="hover:text-white transition-colors py-2 border-b border-white/5">Playbooks</a>
+                  <a href="https://zyvibe.com/affiliates" onClick={() => setMobileMenuOpen(false)} className="hover:text-white transition-colors py-2">Affiliate Program</a>
                 </div>
                 
                 {/* Mobile Authentication Area */}
@@ -331,31 +326,32 @@ export default function App() {
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-purple/10 border border-brand-purple/20 text-brand-purple text-[10px] font-bold uppercase tracking-[0.3em] mb-10">
               <Sparkles className="w-3 h-3" />
-              Financial Grade Infrastructure
+              ✦ BUILT FOR SOLO FOUNDERS & DIGITAL CREATORS
             </div>
             
             <h1 className="text-[clamp(2rem,8vw,3.5rem)] md:text-7xl lg:text-8xl font-extrabold leading-[1.0] text-transparent bg-clip-text bg-gradient-to-r from-[#7c3aed] to-[#4f46e5] mb-8 tracking-tightest">
-              The Operating System for Modern Creators
+              One Founder. Two Engines. 60 Seconds.
             </h1>
 
             <h2 className="text-base leading-[1.6] md:text-xl font-light text-[#a1a1aa] max-w-[640px] mb-12 md:leading-relaxed">
-              Consolidate your creative workflow. Zyvibe provides professional-grade tools to optimize audience routing, automate content queues, and manage subscription revenue with absolute precision.
+              Stop wrestling with bloated enterprise tools. Zyvibe is the ultimate platform for indie hackers and social creators. Vibe-code a production-ready website or run a deep-dive SEO revenue audit—each in under 60 seconds.
             </h2>
 
             <div className="flex flex-col md:flex-row gap-4 mb-12 w-full">
-              <button 
-                onClick={handleSignIn}
+              <a 
+                href="https://app.zyvibe.com/?utm_source=zyvibe_home&utm_medium=hero_cta"
                 className="w-full md:w-auto bg-[#7c3aed] text-white text-xs font-bold uppercase tracking-[0.2em] py-4 px-8 rounded-lg hover:bg-[#6d28d9] transition-all cursor-pointer shadow-[0_4px_20px_rgba(124,58,237,0.4)]"
-                aria-label="Start Free Today"
+                aria-label="Build a Site in 60s"
               >
-                Start Free Today
-              </button>
-              <button 
+                Build a Site in 60s →
+              </a>
+              <a 
+                href="https://seo.zyvibe.com/?utm_source=zyvibe_home&utm_medium=hero_cta"
                 className="w-full md:w-auto border border-white/10 bg-white/[0.02] hover:bg-white/5 text-white text-xs font-bold uppercase tracking-[0.2em] py-4 px-8 rounded-lg transition-colors cursor-pointer"
-                aria-label="Watch Demo"
+                aria-label="Audit SEO in 60s"
               >
-                Watch Demo
-              </button>
+                Audit SEO in 60s →
+              </a>
             </div>
 
             {/* Trust Badges */}
@@ -399,10 +395,10 @@ export default function App() {
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-purple/10 border border-brand-purple/20 text-brand-purple text-[10px] font-bold uppercase tracking-[0.3em] mb-6">
-              About Zyvibe
+              Website Builder
             </div>
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-8 tracking-tightest">
-              Built for Creators Who Mean Business
+              Vibe Code Your Startup in 60 Seconds.
             </h2>
             <div className="space-y-6 text-base text-slate-400 font-medium leading-relaxed">
               <p>
@@ -426,16 +422,16 @@ export default function App() {
             <div className="grid grid-cols-2 gap-6">
               <div className="p-8 bento-card relative overflow-hidden group hover:bg-white/[0.03]">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-brand-indigo/10 rounded-full blur-2xl pointer-events-none" />
-                <p className="text-4xl font-extrabold text-[#4f46e5] mb-2 tracking-tightest">500+</p>
-                <p className="text-sm font-bold text-white mb-1 tracking-tight">Creators Powered</p>
-                <p className="text-[11px] text-slate-500">Empowering digital business owners worldwide.</p>
+                <p className="text-4xl font-extrabold text-[#4f46e5] mb-2 tracking-tightest">60s</p>
+                <p className="text-sm font-bold text-white mb-1 tracking-tight">Website Builder</p>
+                <p className="text-[11px] text-slate-500">Enter the Builder →</p>
               </div>
               
               <div className="p-8 bento-card relative overflow-hidden group hover:bg-white/[0.03]">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-brand-purple/10 rounded-full blur-2xl pointer-events-none" />
-                <p className="text-4xl font-extrabold text-white mb-2 tracking-tightest">99.9%</p>
-                <p className="text-sm font-bold text-white mb-1 tracking-tight">Uptime</p>
-                <p className="text-[11px] text-slate-500">Robust, reliable financial grade operations.</p>
+                <p className="text-4xl font-extrabold text-white mb-2 tracking-tightest">60s</p>
+                <p className="text-sm font-bold text-white mb-1 tracking-tight">SEO Auditor</p>
+                <p className="text-[11px] text-slate-500">Run Your Free Audit →</p>
               </div>
             </div>
           </div>
@@ -623,10 +619,10 @@ export default function App() {
             AI Consultation Engine
           </div>
           <h2 className="text-5xl md:text-6xl font-bold text-white mb-8 tracking-tightest">
-            Automate your <span className="text-gradient">strategic growth.</span>
+            Audit Your Revenue Leaks in 60 Seconds.
           </h2>
           <p className="text-lg text-slate-400 mb-16 max-w-2xl mx-auto font-medium">
-            Our AI-driven consultation engine analyzes your creative bottlenecks in real-time. Speak to Zyvibe to receive a tailored scaling roadmap.
+            A fast website is useless if nobody sees it. Instantly reverse-engineer your competitors, spot broken funnels, and optimize your architecture for AI crawlers.
           </p>
           
           <VoiceAssistant />
@@ -664,10 +660,7 @@ export default function App() {
             {/* Column 1 */}
             <div className="flex flex-col gap-6">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-brand-purple rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(124,58,237,0.3)]">
-                  <Sparkles className="w-5 h-5 text-white" strokeWidth={1.5} />
-                </div>
-                <span className="text-xl font-bold tracking-tightest text-white">Zyvibe</span>
+                <span style={{ fontWeight: 800, fontSize: 24, letterSpacing: -1, color: '#ffffff' }}>Zyvibe</span>
               </div>
               <p className="text-sm text-slate-400 font-medium leading-relaxed">
                 The AI engine behind your business.
@@ -692,23 +685,17 @@ export default function App() {
             <div className="flex flex-col gap-6">
               <h4 className="text-[11px] font-bold text-white uppercase tracking-widest">Product</h4>
               <ul className="flex flex-col gap-4 text-sm text-slate-400 font-medium">
-                <li><a href="#" aria-label="Features" className="hover:text-white transition-colors">Features</a></li>
-                <li><a href="#" aria-label="Pricing" className="hover:text-white transition-colors">Pricing</a></li>
-                <li><a href="#" aria-label="API Docs" className="hover:text-white transition-colors">API Docs</a></li>
-                <li><a href="#" aria-label="Status Page" className="hover:text-white transition-colors">Status Page</a></li>
-                <li><a href="#" aria-label="Changelog" className="hover:text-white transition-colors">Changelog</a></li>
+                <li><a href="https://app.zyvibe.com/?utm_source=zyvibe_home&utm_medium=footer_cta" className="hover:text-white transition-colors">Website Builder</a></li>
+                <li><a href="https://seo.zyvibe.com/?utm_source=zyvibe_home&utm_medium=footer_cta" className="hover:text-white transition-colors">SEO Audit</a></li>
               </ul>
             </div>
 
             {/* Column 3 */}
             <div className="flex flex-col gap-6">
-              <h4 className="text-[11px] font-bold text-white uppercase tracking-widest">Company</h4>
+              <h4 className="text-[11px] font-bold text-white uppercase tracking-widest">Ecosystem</h4>
               <ul className="flex flex-col gap-4 text-sm text-slate-400 font-medium">
-                <li><a href="#" aria-label="About Us" className="hover:text-white transition-colors">About Us</a></li>
-                <li><a href="#" aria-label="Blog" className="hover:text-white transition-colors">Blog</a></li>
-                <li><a href="#" aria-label="Careers" className="hover:text-white transition-colors">Careers</a></li>
-                <li><a href="#" aria-label="Press" className="hover:text-white transition-colors">Press</a></li>
-                <li><a href="#" aria-label="Contact" className="hover:text-white transition-colors">Contact</a></li>
+                <li><a href="https://zyvibe.com/affiliates" className="hover:text-white transition-colors">Partner / Affiliate Portal</a></li>
+                <li><a href="https://blog.zyvibe.com" className="hover:text-white transition-colors">Read the Blog</a></li>
               </ul>
             </div>
 
@@ -759,7 +746,7 @@ export default function App() {
           {/* Bottom Bar */}
           <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
             <p className="text-[11px] text-slate-600 font-bold uppercase tracking-widest">
-              © 2025 Zyvibe Inc. All rights reserved.
+              © 2025 Zyvibe. Built for the Solo Developer.
             </p>
             <div className="flex flex-wrap gap-x-8 gap-y-2 text-[11px] text-slate-600 font-bold uppercase tracking-widest">
               <a href="#" aria-label="Terms of Service" className="hover:text-white transition-colors">Terms of Service</a>
