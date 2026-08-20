@@ -1,3 +1,4 @@
 User-agent: *
 Allow: /
-Sitemap: https://www.zyvibe.com/sitemap.xml
+
+Sitemap: https://zyvibe.com/sitemap.xml

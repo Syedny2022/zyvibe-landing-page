@@ -1,760 +1,391 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, ArrowRight, ShieldCheck, Zap, Globe, Lock, LogOut, User, Menu, X, Linkedin, Twitter, Instagram, Youtube, ChevronDown, ChevronUp, Mail, Loader2, CheckCircle2 } from 'lucide-react';
-import { auth, googleProvider, db } from './firebase';
-import { signInWithPopup, onAuthStateChanged, signOut, User as FirebaseUser } from 'firebase/auth';
-import { collection, addDoc } from 'firebase/firestore';
-import DashboardUI from './components/DashboardUI';
-import VoiceAssistant from './components/VoiceAssistant';
-import SchedulingWidget from './components/SchedulingWidget';
+import {
+  ArrowRight,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Code2,
+  FileSearch,
+  Menu,
+  Sparkles,
+  X,
+  Loader2,
+  Mail,
+  ExternalLink,
+} from 'lucide-react';
 
-const FAQS = [
+const APP_URL = 'https://app.zyvibe.com/?utm_source=zyvibe_home&utm_medium=';
+const SEO_URL = 'https://seo.zyvibe.com/?utm_source=zyvibe_home&utm_medium=';
+const AFFILIATE_URL = 'https://zyvibe.com/affiliates';
+const BLOG_URL = 'https://blog.zyvibe.com';
+const SUPABASE_URL = 'https://fykcaeuswikyjrjerxns.supabase.co';
+const SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXAiLCJyZWYiOiJmeWtjYWV1c3dpa3lyamVyeG5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MjA5NTksImV4cCI6MjA4OTQ5Njk1OX0.No6HEpwviOZmbZtCrRwTUxDZ4d1tmjDQM-sWU_EKUf4';
+
+type SubmitStatus = 'idle' | 'submitting' | 'success' | 'error';
+
+const faqs = [
   {
-    q: "What is Zyvibe?",
-    a: "Zyvibe is an AI-powered business automation platform that connects your content creation, affiliate marketing, scheduling, and workflow management into one intelligent engine."
+    question: 'What does Zyvibe do?',
+    answer:
+      'Zyvibe gives solo founders two focused tools: an AI website builder at app.zyvibe.com and an SEO audit product at seo.zyvibe.com. Each is designed to move a launch or optimization task forward quickly.',
   },
   {
-    q: "Is there a free plan?",
-    a: "Yes. Zyvibe offers a free Starter plan with core automation features. Upgrade to Pro or Enterprise for advanced AI agents, unlimited workflows, and priority support."
+    question: 'Which product should I start with?',
+    answer:
+      'Start with the Website Builder when you need a new page or site. Start with the SEO Auditor when you already have a site and want to identify visibility, architecture, and conversion opportunities.',
   },
   {
-    q: "How does the AI automation work?",
-    a: "Zyvibe uses AI agents that learn your business patterns and automatically execute tasks — from posting content at optimal times to routing leads and managing your revenue streams."
+    question: 'Do I need an enterprise software stack?',
+    answer:
+      'No. Zyvibe is positioned for founders and creators who want direct workflows rather than a large collection of disconnected tools.',
   },
   {
-    q: "Can I connect my social media accounts?",
-    a: "Yes. Zyvibe integrates with Twitter/X, Instagram, LinkedIn, YouTube, Facebook, and more through our secure OAuth connection system."
+    question: 'Where can I find guides and updates?',
+    answer:
+      'The Zyvibe Playbooks hub at blog.zyvibe.com contains practical resources. You can also join the email list below for product updates and creator-focused workflows.',
   },
   {
-    q: "How do I get support?",
-    a: "Email us at support@zyvibe.co or reach us on Twitter @ZyvibeHQ. Pro and Enterprise users get priority 24/7 support via live chat."
-  }
+    question: 'How can I contact Zyvibe?',
+    answer:
+      'Email support@zyvibe.co for product help, hello@zyvibe.co for general questions, or press@zyvibe.co for media requests.',
+  },
 ];
 
+function track(eventName: string, parameters: Record<string, string>) {
+  if (typeof window === 'undefined') return;
+
+  const gtag = (window as unknown as { gtag?: (command: string, event: string, params: Record<string, string>) => void }).gtag;
+  if (typeof gtag === 'function') {
+    gtag('event', eventName, parameters);
+  }
+}
+
+async function addSubscriber(email: string, source: string) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/email_subscribers`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      Prefer: 'return=minimal,resolution=merge-duplicates',
+    },
+    body: JSON.stringify({
+      email,
+      source,
+      subscribed_at: new Date().toISOString(),
+    }),
+  });
+
+  if (!response.ok && response.status !== 409) {
+    throw new Error(`Subscriber request failed with ${response.status}`);
+  }
+}
+
 export default function App() {
-  const [user, setUser] = useState<FirebaseUser | null>(null);
-  const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
-
-  // Supabase newsletter capture
-  const SUPA_URL = 'https://fykcaeuswikyjrjerxns.supabase.co';
-  const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5a2NhZXVzd2lreWpyamVyeG5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MjA5NTksImV4cCI6MjA4OTQ5Njk1OX0.No6HEpwviOZmbZtCrRwTUxDZ4d1tmjDQM-sWU_EKUf4';
   const [newsletterEmail, setNewsletterEmail] = useState('');
-  const [newsletterStatus, setNewsletterStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [newsletterStatus, setNewsletterStatus] = useState<SubmitStatus>('idle');
+  const [affiliateEmail, setAffiliateEmail] = useState('');
+  const [affiliateStatus, setAffiliateStatus] = useState<SubmitStatus>('idle');
 
-  const handleNewsletterSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const closeMobileMenu = () => setMobileMenuOpen(false);
+
+  const handleNewsletterSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     if (!newsletterEmail) return;
+
     setNewsletterStatus('submitting');
     try {
-      const res = await fetch(SUPA_URL + '/rest/v1/email_subscribers', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPA_KEY,
-          'Authorization': 'Bearer ' + SUPA_KEY,
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify({
-          email: newsletterEmail,
-          source: 'zyvibe.com-footer',
-          subscribed_at: new Date().toISOString()
-        })
-      });
-      if (res.ok || res.status === 409) {
-        setNewsletterStatus('success');
-        setNewsletterEmail('');
-        if (typeof (window as any).gtag !== 'undefined') {
-          (window as any).gtag('event', 'newsletter_signup', { source: 'footer' });
-        }
-      } else {
-        setNewsletterStatus('error');
-      }
+      await addSubscriber(newsletterEmail.trim().toLowerCase(), 'zyvibe-home-newsletter');
+      track('newsletter_signup', { source: 'zyvibe_home_footer' });
+      setNewsletterEmail('');
+      setNewsletterStatus('success');
     } catch {
       setNewsletterStatus('error');
     }
-    setTimeout(() => setNewsletterStatus('idle'), 5000);
   };
 
-  // contact form state
-  const [contactName, setContactName] = useState('');
-  const [contactEmail, setContactEmail] = useState('');
-  const [contactMessage, setContactMessage] = useState('');
-  const [contactStatus, setContactStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const handleAffiliateSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!affiliateEmail) return;
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (user) {
-      setContactName(user.displayName || '');
-      setContactEmail(user.email || '');
-    }
-  }, [user]);
-
-  const handleSignIn = async () => {
+    setAffiliateStatus('submitting');
     try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (error) {
-      console.error("Error signing in with Google:", error);
+      await addSubscriber(affiliateEmail.trim().toLowerCase(), 'zyvibe-affiliate-interest');
+      track('affiliate_interest_signup', { source: 'zyvibe_home_affiliates' });
+      setAffiliateEmail('');
+      setAffiliateStatus('success');
+    } catch {
+      setAffiliateStatus('error');
     }
   };
 
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
-  };
-
-  const handleContactSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!contactName || !contactEmail || !contactMessage) return;
-    setContactStatus('submitting');
-    try {
-      await addDoc(collection(db, 'contacts'), {
-        name: contactName,
-        email: contactEmail,
-        message: contactMessage,
-        createdAt: new Date().toISOString(),
-        userId: user?.uid || 'anonymous'
-      });
-      setContactStatus('success');
-      setContactMessage('');
-      setTimeout(() => setContactStatus('idle'), 5000);
-    } catch (error) {
-      console.error("Error submitting contact form:", error);
-      setContactStatus('error');
-    }
-  };
   return (
-    <div className="min-h-screen bg-bg-main text-slate-400 overflow-x-hidden bg-grid-premium relative">
-      {/* Light Leaks */}
-      <div className="fixed top-0 left-0 w-full h-full pointer-events-none z-0 overflow-hidden">
-        <motion.div 
-          animate={{ 
-            opacity: [0.1, 0.2, 0.15, 0.2],
-            scale: [1, 1.1, 1.05, 1],
-          }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[-10%] left-[-10%] w-[800px] h-[800px] light-leak-left opacity-20" 
-        />
-        <motion.div 
-          animate={{ 
-            opacity: [0.15, 0.2, 0.1, 0.15],
-            scale: [1.1, 1, 1.05, 1.1],
-          }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[-10%] right-[-10%] w-[800px] h-[800px] light-leak-right opacity-20" 
-        />
-      </div>
+    <div className="min-h-screen overflow-x-hidden bg-bg-main text-slate-300 bg-grid-premium">
+      <header className="sticky top-0 z-50 border-b border-white/[0.08] bg-bg-main/85 px-5 py-4 backdrop-blur-xl md:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-5">
+          <a href="https://zyvibe.com" aria-label="Zyvibe home" className="flex items-center gap-2 text-white">
+            <span className="text-2xl font-extrabold tracking-[-0.06em]">Zyvibe</span>
+          </a>
 
-      {/* Navigation */}
-      <nav className="sticky top-0 left-0 right-0 z-[9999] px-6 py-4 bg-bg-main/60 backdrop-blur-xl border-b border-white/[0.08]">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <nav aria-label="Primary navigation" className="hidden items-center gap-7 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 lg:flex">
+            <a href={`${APP_URL}header`} className="transition-colors hover:text-white">Website Builder</a>
+            <a href={`${SEO_URL}header`} className="transition-colors hover:text-white">SEO Auditor</a>
+            <a href={BLOG_URL} className="transition-colors hover:text-white">Playbooks</a>
+            <a href={AFFILIATE_URL} className="transition-colors hover:text-white">Affiliate Program</a>
+          </nav>
+
           <div className="flex items-center gap-3">
-            <span style={{ fontWeight: 800, fontSize: 24, letterSpacing: -1, color: '#ffffff' }}>Zyvibe</span>
-          </div>
-          
-          <div className="hidden lg:flex items-center gap-8 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
-            <a href="https://app.zyvibe.com/?utm_source=zyvibe_home&utm_medium=header" className="hover:text-white transition-colors">Website Builder</a>
-            <a href="https://seo.zyvibe.com/?utm_source=zyvibe_home&utm_medium=header" className="hover:text-white transition-colors">SEO Auditor</a>
-            <a href="https://blog.zyvibe.com" className="hover:text-white transition-colors">Playbooks</a>
-            <a href="https://zyvibe.com/affiliates" className="hover:text-white transition-colors">Affiliate Program</a>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            {/* Desktop Auth Panel */}
-            <div className="hidden md:flex items-center gap-4">
-              <AnimatePresence mode="wait">
-                {user ? (
-                  <motion.div 
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 10 }}
-                    className="flex items-center gap-4"
-                  >
-                    <div className="flex items-center gap-3 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/10">
-                      {user.photoURL ? (
-                        <img src={user.photoURL} alt={user.displayName || 'User'} className="w-5 h-5 rounded-full border border-white/20" />
-                      ) : (
-                        <div className="w-5 h-5 rounded-full bg-brand-purple/20 flex items-center justify-center">
-                          <User className="w-3 h-3 text-brand-purple" />
-                        </div>
-                      )}
-                      <span className="text-[10px] font-bold text-white uppercase tracking-wider truncate max-w-[80px]">
-                        {user.displayName?.split(' ')[0]}
-                      </span>
-                    </div>
-                    <button 
-                      onClick={handleSignOut}
-                      aria-label="Sign Out"
-                      className="p-2 rounded-full hover:bg-white/5 transition-colors text-slate-500 hover:text-white cursor-pointer"
-                      title="Sign Out"
-                    >
-                      <LogOut className="w-4 h-4" />
-                    </button>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 10 }}
-                    className="flex items-center gap-4"
-                  >
-                    <button 
-                      onClick={handleSignIn}
-                      aria-label="Sign In"
-                      className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 hover:text-white border border-white/10 px-4 py-2 rounded-lg bg-white/[0.02] hover:bg-white/5 transition-colors cursor-pointer"
-                    >
-                      Sign In
-                    </button>
-                    <a 
-                      href="https://zyvibe.com/affiliates?utm_source=zyvibe_home&utm_medium=header_cta"
-                      aria-label="Start Free Today"
-                      className="bg-[#7c3aed] text-white text-[11px] font-bold uppercase tracking-[0.1em] py-2 px-4 rounded-lg hover:bg-[#6d28d9] transition-all cursor-pointer shadow-[0_4px_20px_rgba(124,58,237,0.35)]"
-                    >
-                      Start Free Today
-                    </a>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Mobile menu toggle */}
-            <button 
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Toggle navigation menu"
-              className="lg:hidden p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
+            <a
+              href={`${AFFILIATE_URL}?utm_source=zyvibe_home&utm_medium=header_cta`}
+              className="hidden rounded-lg bg-[#7c3aed] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white shadow-[0_4px_20px_rgba(124,58,237,0.35)] transition-all hover:bg-[#6d28d9] sm:inline-flex"
             >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              Start Free Today
+            </a>
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((isOpen) => !isOpen)}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-navigation"
+              aria-label="Toggle navigation menu"
+              className="rounded-lg p-2 text-slate-300 transition-colors hover:bg-white/[0.06] hover:text-white lg:hidden"
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Slide-down Drawer */}
-        <AnimatePresence>
+        <AnimatePresence initial={false}>
           {mobileMenuOpen && (
-            <motion.div
+            <motion.nav
+              id="mobile-navigation"
+              aria-label="Mobile navigation"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
-              className="lg:hidden absolute top-full left-0 right-0 bg-bg-main/95 backdrop-blur-2xl border-b border-white/10 overflow-hidden z-40"
+              transition={{ duration: 0.2 }}
+              className="mx-auto mt-4 max-w-7xl overflow-hidden border-t border-white/[0.08] lg:hidden"
             >
-              <div className="px-6 py-8 flex flex-col gap-6">
-                <div className="flex flex-col gap-4 text-sm font-semibold tracking-wider text-slate-300">
-                  <a href="https://app.zyvibe.com/?utm_source=zyvibe_home&utm_medium=header" onClick={() => setMobileMenuOpen(false)} className="hover:text-white transition-colors py-2 border-b border-white/5">Website Builder</a>
-                  <a href="https://seo.zyvibe.com/?utm_source=zyvibe_home&utm_medium=header" onClick={() => setMobileMenuOpen(false)} className="hover:text-white transition-colors py-2 border-b border-white/5">SEO Auditor</a>
-                  <a href="https://blog.zyvibe.com" onClick={() => setMobileMenuOpen(false)} className="hover:text-white transition-colors py-2 border-b border-white/5">Playbooks</a>
-                  <a href="https://zyvibe.com/affiliates" onClick={() => setMobileMenuOpen(false)} className="hover:text-white transition-colors py-2">Affiliate Program</a>
-                </div>
-                
-                {/* Mobile Authentication Area */}
-                <div className="pt-4 border-t border-white/5 flex flex-col gap-4">
-                  {user ? (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {user.photoURL ? (
-                          <img src={user.photoURL} alt={user.displayName || 'User'} className="w-6 h-6 rounded-full border border-white/20" />
-                        ) : (
-                          <div className="w-6 h-6 rounded-full bg-brand-purple/20 flex items-center justify-center">
-                            <User className="w-4 h-4 text-brand-purple" />
-                          </div>
-                        )}
-                        <span className="text-xs font-bold text-white uppercase tracking-wider">
-                          {user.displayName}
-                        </span>
-                      </div>
-                      <button 
-                        onClick={() => {
-                          handleSignOut();
-                          setMobileMenuOpen(false);
-                        }}
-                        aria-label="Sign Out"
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
-                      >
-                        <LogOut className="w-3.5 h-3.5" />
-                        Sign Out
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-4">
-                      <button 
-                        onClick={() => {
-                          handleSignIn();
-                          setMobileMenuOpen(false);
-                        }}
-                        aria-label="Sign In via Google"
-                        className="w-full text-center py-2.5 rounded-lg border border-white/10 bg-white/[0.02] text-xs font-bold uppercase tracking-widest text-slate-300 hover:text-white transition-all cursor-pointer"
-                      >
-                        Sign In
-                      </button>
-                      <button 
-                        onClick={() => {
-                          handleSignIn();
-                          setMobileMenuOpen(false);
-                        }}
-                        aria-label="Get Started"
-                        className="w-full text-center py-2.5 rounded-lg bg-[#7c3aed] hover:bg-[#6d28d9] text-xs font-bold uppercase tracking-widest text-white transition-all cursor-pointer shadow-[0_4px_15px_rgba(124,58,237,0.3)]"
-                      >
-                        Get Started
-                      </button>
-                    </div>
-                  )}
-                </div>
+              <div className="flex flex-col gap-1 py-4 text-sm font-semibold text-slate-300">
+                <a href={`${APP_URL}header_mobile`} onClick={closeMobileMenu} className="rounded-lg px-3 py-3 hover:bg-white/[0.05] hover:text-white">Website Builder</a>
+                <a href={`${SEO_URL}header_mobile`} onClick={closeMobileMenu} className="rounded-lg px-3 py-3 hover:bg-white/[0.05] hover:text-white">SEO Auditor</a>
+                <a href={BLOG_URL} onClick={closeMobileMenu} className="rounded-lg px-3 py-3 hover:bg-white/[0.05] hover:text-white">Playbooks</a>
+                <a href={AFFILIATE_URL} onClick={closeMobileMenu} className="rounded-lg px-3 py-3 hover:bg-white/[0.05] hover:text-white">Affiliate Program</a>
+                <a href={`${AFFILIATE_URL}?utm_source=zyvibe_home&utm_medium=header_cta_mobile`} onClick={closeMobileMenu} className="mt-2 rounded-lg bg-[#7c3aed] px-3 py-3 text-center text-xs font-bold uppercase tracking-widest text-white">Start Free Today</a>
               </div>
-            </motion.div>
+            </motion.nav>
           )}
         </AnimatePresence>
-      </nav>
+      </header>
 
-      {/* Hero Section */}
-      <section className="relative pt-20 pb-32 px-6 z-10">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-20 items-center">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-purple/10 border border-brand-purple/20 text-brand-purple text-[10px] font-bold uppercase tracking-[0.3em] mb-10">
-              <Sparkles className="w-3 h-3" />
-              ✦ BUILT FOR SOLO FOUNDERS & DIGITAL CREATORS
-            </div>
-            
-            <h1 className="text-[clamp(2rem,8vw,3.5rem)] md:text-7xl lg:text-8xl font-extrabold leading-[1.0] text-transparent bg-clip-text bg-gradient-to-r from-[#7c3aed] to-[#4f46e5] mb-8 tracking-tightest">
-              One Founder. Two Engines. 60 Seconds.
-            </h1>
-
-            <h2 className="text-base leading-[1.6] md:text-xl font-light text-[#a1a1aa] max-w-[640px] mb-12 md:leading-relaxed">
-              Stop wrestling with bloated enterprise tools. Zyvibe is the ultimate platform for indie hackers and social creators. Vibe-code a production-ready website or run a deep-dive SEO revenue audit—each in under 60 seconds.
-            </h2>
-
-            <div className="flex flex-col md:flex-row gap-4 mb-12 w-full">
-              <a 
-                href="https://app.zyvibe.com/?utm_source=zyvibe_home&utm_medium=hero_cta"
-                className="w-full md:w-auto bg-[#7c3aed] text-white text-xs font-bold uppercase tracking-[0.2em] py-4 px-8 rounded-lg hover:bg-[#6d28d9] transition-all cursor-pointer shadow-[0_4px_20px_rgba(124,58,237,0.4)]"
-                aria-label="Build a Site in 60s"
-              >
-                Build a Site in 60s →
-              </a>
-              <a 
-                href="https://seo.zyvibe.com/?utm_source=zyvibe_home&utm_medium=hero_cta"
-                className="w-full md:w-auto border border-white/10 bg-white/[0.02] hover:bg-white/5 text-white text-xs font-bold uppercase tracking-[0.2em] py-4 px-8 rounded-lg transition-colors cursor-pointer"
-                aria-label="Audit SEO in 60s"
-              >
-                Audit SEO in 60s →
-              </a>
-            </div>
-
-            {/* Trust Badges */}
-            <div className="flex items-center gap-10 opacity-30 grayscale hover:grayscale-0 transition-all duration-500 mb-12">
-              <div className="flex items-center gap-2.5">
-                <ShieldCheck className="w-5 h-5 text-white" strokeWidth={1.5} />
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white">PCI Compliant</span>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <Lock className="w-5 h-5 text-white" strokeWidth={1.5} />
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white">256-bit AES</span>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Bento Grid Preview */}
-          <div className="grid grid-cols-2 gap-6">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="col-span-2"
-            >
-              <DashboardUI className="shadow-2xl" />
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-              className="col-span-2"
-            >
-              <SchedulingWidget className="shadow-2xl" />
-            </motion.div>
+      <main>
+        <section className="relative isolate px-5 pb-20 pt-16 md:px-8 md:pb-32 md:pt-24">
+          <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[560px] overflow-hidden">
+            <div className="absolute left-[6%] top-[-260px] h-[520px] w-[520px] rounded-full bg-[#7c3aed]/20 blur-[120px]" />
+            <div className="absolute right-[5%] top-[-230px] h-[480px] w-[480px] rounded-full bg-[#4f46e5]/15 blur-[120px]" />
           </div>
-        </div>
-      </section>
-
-      {/* About Us Section */}
-      <section className="py-32 px-6 max-w-7xl mx-auto relative z-10 border-t border-white/5 text-left">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-purple/10 border border-brand-purple/20 text-brand-purple text-[10px] font-bold uppercase tracking-[0.3em] mb-6">
-              Website Builder
-            </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-8 tracking-tightest">
-              Vibe Code Your Startup in 60 Seconds.
-            </h2>
-            <div className="space-y-6 text-base text-slate-400 font-medium leading-relaxed">
-              <p>
-                Zyvibe is an AI-powered business automation platform built specifically to support creators, solopreneurs, and small businesses. We provide the technical leverage needed to automate complex operational workflows, optimize audience growth, and streamline monetization pathways so you can successfully compete at enterprise scale.
+          <div className="mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-20">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }}>
+              <p className="mb-7 inline-flex items-center gap-2 rounded-full border border-violet-400/20 bg-violet-500/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.22em] text-violet-300">
+                <Sparkles className="h-3.5 w-3.5" />
+                Built for solo founders &amp; digital creators
               </p>
-              <p>
-                Founded on the core belief that powerful, production-grade business tools should be readily accessible to everyone, Zyvibe integrates fragmenting platform tasks into a cohesive, secure operating system. We take care of operational overhead, enabling you to focus entirely on outstanding creative output and strategic business expansion.
+              <h1 className="max-w-4xl text-5xl font-extrabold leading-[0.98] tracking-[-0.065em] text-white md:text-7xl lg:text-8xl">
+                One Founder. <span className="bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">Two Engines.</span> 60 Seconds.
+              </h1>
+              <p className="mt-8 max-w-2xl text-lg leading-relaxed text-slate-300 md:text-xl">
+                Stop wrestling with bloated enterprise tools. Zyvibe is the ultimate platform for indie hackers and social creators. Vibe-code a production-ready website or run a deep-dive SEO revenue audit—each in under 60 seconds.
               </p>
-            </div>
-          </div>
-
-          {/* 3-stat Bento Row / Grid */}
-          <div className="grid gap-6 text-left">
-            <div className="p-8 bento-card relative overflow-hidden group hover:bg-white/[0.03]">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-brand-purple/10 rounded-full blur-3xl pointer-events-none" />
-              <p className="text-5xl font-extrabold text-[#7c3aed] mb-2 tracking-tightest">10K+</p>
-              <p className="text-lg font-bold text-white mb-1 tracking-tight">Automations Run</p>
-              <p className="text-xs text-slate-500">Intelligent flows executed flawlessly across global networks.</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div className="p-8 bento-card relative overflow-hidden group hover:bg-white/[0.03]">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-brand-indigo/10 rounded-full blur-2xl pointer-events-none" />
-                <p className="text-4xl font-extrabold text-[#4f46e5] mb-2 tracking-tightest">60s</p>
-                <p className="text-sm font-bold text-white mb-1 tracking-tight">Website Builder</p>
-                <p className="text-[11px] text-slate-500">Enter the Builder →</p>
+              <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+                <a
+                  href={`${APP_URL}hero_cta`}
+                  onClick={() => track('select_content', { content_type: 'product_cta', item_id: 'website_builder_hero' })}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#7c3aed] px-6 py-4 text-xs font-bold uppercase tracking-[0.16em] text-white shadow-[0_7px_30px_rgba(124,58,237,0.38)] transition hover:-translate-y-0.5 hover:bg-[#6d28d9]"
+                >
+                  Build a Site in 60s <ArrowRight className="h-4 w-4" />
+                </a>
+                <a
+                  href={`${SEO_URL}hero_cta`}
+                  onClick={() => track('select_content', { content_type: 'product_cta', item_id: 'seo_audit_hero' })}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/[0.04] px-6 py-4 text-xs font-bold uppercase tracking-[0.16em] text-white transition hover:-translate-y-0.5 hover:bg-white/[0.08]"
+                >
+                  Audit SEO in 60s <FileSearch className="h-4 w-4" />
+                </a>
               </div>
-              
-              <div className="p-8 bento-card relative overflow-hidden group hover:bg-white/[0.03]">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-brand-purple/10 rounded-full blur-2xl pointer-events-none" />
-                <p className="text-4xl font-extrabold text-white mb-2 tracking-tightest">60s</p>
-                <p className="text-sm font-bold text-white mb-1 tracking-tight">SEO Auditor</p>
-                <p className="text-[11px] text-slate-500">Run Your Free Audit →</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+              <p className="mt-5 text-sm text-slate-500">Choose the engine that removes your next growth bottleneck.</p>
+            </motion.div>
 
-      {/* FAQ Section */}
-      <section className="py-32 px-6 bg-white/[0.01] border-y border-white/5 relative z-10 text-left">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-purple/10 border border-brand-purple/20 text-brand-purple text-[10px] font-bold uppercase tracking-[0.3em] mb-6">
-              Support Center
-            </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tightest">
-              Frequently Asked Questions
-            </h2>
-            <p className="text-base text-slate-400 font-medium">
-              Everything you need to know about our business automation engine.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            {FAQS.map((faq, i) => {
-              const isOpen = activeFaq === i;
-              return (
-                <div 
-                  key={i}
-                  className="bento-card border border-white/5 rounded-xl overflow-hidden transition-all duration-300"
-                >
-                  <button
-                    onClick={() => setActiveFaq(isOpen ? null : i)}
-                    aria-expanded={isOpen}
-                    aria-label={`Toggle description for ${faq.q}`}
-                    className="w-full px-6 py-5 flex items-center justify-between text-left text-white font-bold hover:bg-white/[0.01] transition-colors cursor-pointer"
-                  >
-                    <span className="text-sm md:text-base tracking-tight">{faq.q}</span>
-                    <span className="text-slate-500 ml-4 shrink-0">
-                      {isOpen ? <ChevronUp className="w-5 h-5 text-brand-purple" /> : <ChevronDown className="w-5 h-5" />}
-                    </span>
-                  </button>
-                  <AnimatePresence initial={false}>
-                    {isOpen && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.25, ease: "easeInOut" }}
-                      >
-                        <div className="px-6 pb-6 text-sm text-slate-400 font-medium leading-relaxed border-t border-white/5 pt-4 bg-white/[0.003]">
-                          {faq.a}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Contact Us Section */}
-      <section className="py-32 px-6 bg-white/[0.002] border-b border-white/5 relative z-10 text-left">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-purple/10 border border-brand-purple/20 text-brand-purple text-[10px] font-bold uppercase tracking-[0.3em] mb-6">
-              Contact Us
-            </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tightest">
-              Get In Touch
-            </h2>
-            <p className="text-base text-slate-400 font-medium">
-              Have a question or want to partner? We reply within 24 hours.
-            </p>
-          </div>
-
-          <div className="bento-card p-8 md:p-12 max-w-2xl mx-auto shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-brand-purple/10 rounded-full blur-3xl pointer-events-none" />
-            
-            <form onSubmit={handleContactSubmit} className="space-y-6">
-              {contactStatus === 'success' && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm flex items-center gap-3"
-                >
-                  <CheckCircle2 className="w-5 h-5 shrink-0" />
-                  <span>Thank you! Your message has been sent successfully. Our team will contact you shortly.</span>
-                </motion.div>
-              )}
-              {contactStatus === 'error' && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-3"
-                >
-                  <X className="w-5 h-5 shrink-0 text-red-400" />
-                  <span>An error occurred while sending your message. Please try again.</span>
-                </motion.div>
-              )}
-
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="contact-name" className="text-[10px] font-bold text-white uppercase tracking-widest">
-                    Your Name
-                  </label>
-                  <input
-                    id="contact-name"
-                    type="text"
-                    required
-                    value={contactName}
-                    onChange={(e) => setContactName(e.target.value)}
-                    placeholder="Jane Doe"
-                    disabled={contactStatus === 'submitting'}
-                    className="px-4 py-3 rounded-lg bg-white/[0.03] border border-white/10 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-[#7c3aed]/50 transition-colors disabled:opacity-50"
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="contact-email" className="text-[10px] font-bold text-white uppercase tracking-widest">
-                    Email Address
-                  </label>
-                  <input
-                    id="contact-email"
-                    type="email"
-                    required
-                    value={contactEmail}
-                    onChange={(e) => setContactEmail(e.target.value)}
-                    placeholder="jane@example.com"
-                    disabled={contactStatus === 'submitting'}
-                    className="px-4 py-3 rounded-lg bg-white/[0.03] border border-white/10 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-[#7c3aed]/50 transition-colors disabled:opacity-50"
-                  />
+            <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 0.08 }} className="grid gap-4">
+              <div className="bento-card relative overflow-hidden p-7 md:p-8">
+                <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-violet-500/15 blur-3xl" />
+                <div className="relative flex items-start justify-between gap-5">
+                  <div>
+                    <span className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-violet-500/15 text-violet-300"><Code2 className="h-5 w-5" /></span>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-300">Engine 01</p>
+                    <h2 className="mt-2 text-2xl font-bold tracking-tight text-white">Website Builder</h2>
+                    <p className="mt-3 max-w-sm text-sm leading-relaxed text-slate-400">Turn a clear idea into a launch-ready website workflow at app.zyvibe.com.</p>
+                  </div>
+                  <span className="rounded-full border border-violet-400/20 bg-violet-400/10 px-3 py-1 text-xs font-bold text-violet-200">60s</span>
                 </div>
               </div>
-
-              <div className="flex flex-col gap-2">
-                <label htmlFor="contact-message" className="text-[10px] font-bold text-white uppercase tracking-widest">
-                  Message
-                </label>
-                <textarea
-                  id="contact-message"
-                  required
-                  rows={5}
-                  value={contactMessage}
-                  onChange={(e) => setContactMessage(e.target.value)}
-                  placeholder="Tell us about your creator business, workflows, or any inquiries..."
-                  disabled={contactStatus === 'submitting'}
-                  className="px-4 py-3 rounded-lg bg-white/[0.03] border border-white/10 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-[#7c3aed]/50 transition-colors disabled:opacity-50 resize-none font-sans"
-                />
+              <div className="bento-card relative overflow-hidden p-7 md:p-8">
+                <div className="absolute bottom-0 left-0 h-40 w-40 rounded-full bg-indigo-500/15 blur-3xl" />
+                <div className="relative flex items-start justify-between gap-5">
+                  <div>
+                    <span className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-300"><FileSearch className="h-5 w-5" /></span>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-300">Engine 02</p>
+                    <h2 className="mt-2 text-2xl font-bold tracking-tight text-white">SEO Auditor</h2>
+                    <p className="mt-3 max-w-sm text-sm leading-relaxed text-slate-400">Find technical, structural, and revenue-focused SEO opportunities at seo.zyvibe.com.</p>
+                  </div>
+                  <span className="rounded-full border border-indigo-400/20 bg-indigo-400/10 px-3 py-1 text-xs font-bold text-indigo-200">60s</span>
+                </div>
               </div>
-
-              <button
-                type="submit"
-                disabled={contactStatus === 'submitting'}
-                className="w-full py-4 rounded-lg bg-[#7c3aed] text-white text-xs font-bold uppercase tracking-[0.2em] hover:bg-[#6d28d9] transition-all cursor-pointer shadow-[0_4px_15px_rgba(124,58,237,0.3)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {contactStatus === 'submitting' ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Sending...</span>
-                  </>
-                ) : (
-                  <span>Send Message</span>
-                )}
-              </button>
-            </form>
-
-            <div className="mt-10 pt-8 border-t border-white/5 flex flex-col sm:flex-row justify-center items-center gap-6 sm:gap-12 text-xs text-slate-500 font-bold uppercase tracking-widest">
-              <a href="mailto:support@zyvibe.co" className="flex items-center gap-2 hover:text-white transition-colors">
-                <Mail className="w-4 h-4 text-brand-purple" />
-                <span>support@zyvibe.co</span>
-              </a>
-              <a href="https://twitter.com/ZyvibeHQ" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-white transition-all">
-                <Twitter className="w-4 h-4 text-brand-purple" />
-                <span>@ZyvibeHQ</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Voice Assistant Section */}
-      <section className="py-32 px-6 bg-white/[0.01] border-y border-white/5 relative z-10">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.03] border border-white/10 text-slate-500 text-[10px] font-bold uppercase tracking-[0.3em] mb-10">
-            AI Consultation Engine
-          </div>
-          <h2 className="text-5xl md:text-6xl font-bold text-white mb-8 tracking-tightest">
-            Audit Your Revenue Leaks in 60 Seconds.
-          </h2>
-          <p className="text-lg text-slate-400 mb-16 max-w-2xl mx-auto font-medium">
-            A fast website is useless if nobody sees it. Instantly reverse-engineer your competitors, spot broken funnels, and optimize your architecture for AI crawlers.
-          </p>
-          
-          <VoiceAssistant />
-        </div>
-      </section>
-
-      {/* Features Bento Grid */}
-      <section className="py-32 px-6 max-w-7xl mx-auto relative z-10">
-        <div className="grid md:grid-cols-3 gap-6">
-          {[
-            { icon: Globe, title: "Global Infrastructure", desc: "Deploy your content across 40+ edge locations for sub-second delivery to your audience." },
-            { icon: ShieldCheck, title: "Enterprise Security", desc: "Financial-grade encryption and multi-factor authentication protect your creative assets." },
-            { icon: Zap, title: "Real-time Sync", desc: "Proprietary WebSocket engine ensures your dashboard is always in sync with your live metrics." }
-          ].map((feature, i) => (
-            <motion.div
-              key={i}
-              whileHover={{ y: -5 }}
-              className="p-10 bento-card group hover:bg-white/[0.04]"
-            >
-              <div className="w-12 h-12 bg-white/[0.03] rounded-lg flex items-center justify-center mb-8 border border-white/10 group-hover:border-brand-purple/50 transition-colors">
-                <feature.icon className="w-6 h-6 text-brand-purple" strokeWidth={1.5} />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-4 tracking-tightest">{feature.title}</h3>
-              <p className="text-sm text-slate-500 leading-relaxed font-medium">{feature.desc}</p>
             </motion.div>
-          ))}
-        </div>
-      </section>
+          </div>
+        </section>
 
-      {/* Footer */}
-      <footer className="py-24 px-6 border-t border-white/[0.06] bg-[#0a0a0f] relative z-10 text-left">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
-            
-            {/* Column 1 */}
-            <div className="flex flex-col gap-6">
-              <div className="flex items-center gap-3">
-                <span style={{ fontWeight: 800, fontSize: 24, letterSpacing: -1, color: '#ffffff' }}>Zyvibe</span>
-              </div>
-              <p className="text-sm text-slate-400 font-medium leading-relaxed">
-                The AI engine behind your business.
-              </p>
-              <div className="flex gap-4">
-                <a href="#" aria-label="X (formerly Twitter)" className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 transition-all">
-                  <Twitter className="w-4 h-4" />
-                </a>
-                <a href="#" aria-label="LinkedIn" className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 transition-all">
-                  <Linkedin className="w-4 h-4" />
-                </a>
-                <a href="#" aria-label="Instagram" className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 transition-all">
-                  <Instagram className="w-4 h-4" />
-                </a>
-                <a href="#" aria-label="YouTube" className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 transition-all">
-                  <Youtube className="w-4 h-4" />
-                </a>
-              </div>
+        <section id="website-builder" className="border-y border-white/[0.07] bg-white/[0.015] px-5 py-20 md:px-8 md:py-28">
+          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+            <div className="bento-card p-8 md:p-10">
+              <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-violet-500/15 text-violet-300"><Code2 className="h-6 w-6" /></span>
+              <p className="mt-8 text-xs font-bold uppercase tracking-[0.2em] text-violet-300">Website Builder</p>
+              <p className="mt-3 text-5xl font-extrabold tracking-[-0.06em] text-white">60s</p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-400">From concept to an actionable website-building workflow.</p>
             </div>
-
-            {/* Column 2 */}
-            <div className="flex flex-col gap-6">
-              <h4 className="text-[11px] font-bold text-white uppercase tracking-widest">Product</h4>
-              <ul className="flex flex-col gap-4 text-sm text-slate-400 font-medium">
-                <li><a href="https://app.zyvibe.com/?utm_source=zyvibe_home&utm_medium=footer_cta" className="hover:text-white transition-colors">Website Builder</a></li>
-                <li><a href="https://seo.zyvibe.com/?utm_source=zyvibe_home&utm_medium=footer_cta" className="hover:text-white transition-colors">SEO Audit</a></li>
-              </ul>
+            <div>
+              <h2 className="text-4xl font-bold tracking-[-0.05em] text-white md:text-6xl">Vibe Code Your Startup in 60 Seconds.</h2>
+              <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-400">Don&apos;t let your launch get bogged down by drag-and-drop builders. Describe your vision in plain English, and Zyvibe&apos;s AI instantly generates a live, high-converting landing page.</p>
+              <a href={`${APP_URL}website_builder_section`} onClick={() => track('select_content', { content_type: 'product_cta', item_id: 'website_builder_section' })} className="mt-8 inline-flex items-center gap-2 text-sm font-bold text-violet-300 transition-colors hover:text-white">
+                Enter the Builder <ArrowRight className="h-4 w-4" />
+              </a>
             </div>
+          </div>
+        </section>
 
-            {/* Column 3 */}
-            <div className="flex flex-col gap-6">
-              <h4 className="text-[11px] font-bold text-white uppercase tracking-widest">Ecosystem</h4>
-              <ul className="flex flex-col gap-4 text-sm text-slate-400 font-medium">
-                <li><a href="https://zyvibe.com/affiliates" className="hover:text-white transition-colors">Partner / Affiliate Portal</a></li>
-                <li><a href="https://blog.zyvibe.com" className="hover:text-white transition-colors">Read the Blog</a></li>
-              </ul>
+        <section id="seo-auditor" className="px-5 py-20 md:px-8 md:py-28">
+          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+            <div>
+              <h2 className="text-4xl font-bold tracking-[-0.05em] text-white md:text-6xl">Audit Your Revenue Leaks in 60 Seconds.</h2>
+              <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-400">A fast website is useless if nobody sees it. Instantly reverse-engineer your competitors, spot broken funnels, and optimize your architecture for AI crawlers.</p>
+              <a href={`${SEO_URL}seo_auditor_section`} onClick={() => track('select_content', { content_type: 'product_cta', item_id: 'seo_auditor_section' })} className="mt-8 inline-flex items-center gap-2 text-sm font-bold text-indigo-300 transition-colors hover:text-white">
+                Run Your Free Audit <ArrowRight className="h-4 w-4" />
+              </a>
             </div>
+            <div className="bento-card p-8 md:p-10">
+              <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-300"><FileSearch className="h-6 w-6" /></span>
+              <p className="mt-8 text-xs font-bold uppercase tracking-[0.2em] text-indigo-300">SEO Auditor</p>
+              <p className="mt-3 text-5xl font-extrabold tracking-[-0.06em] text-white">60s</p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-400">A direct starting point for visibility and revenue-focused SEO work.</p>
+            </div>
+          </div>
+        </section>
 
-            {/* Column 4 — Newsletter Capture (Supabase) */}
-            <div className="flex flex-col gap-6">
-              <h4 className="text-[11px] font-bold text-white uppercase tracking-widest">Stay in the loop</h4>
-              <p className="text-sm text-slate-400 font-medium leading-relaxed">
-                Get AI automation tips and product updates weekly.
-              </p>
-              {newsletterStatus === 'success' ? (
-                <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-bold">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>You're in! Check your inbox.</span>
+        <section id="affiliates" className="border-y border-white/[0.07] bg-gradient-to-br from-violet-500/[0.10] via-transparent to-indigo-500/[0.10] px-5 py-20 md:px-8 md:py-28">
+          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-300">Partner with Zyvibe</p>
+              <h2 className="mt-4 text-4xl font-bold tracking-[-0.05em] text-white md:text-6xl">Share tools built for founders who move fast.</h2>
+              <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-400">Publish creator, startup, or SEO content? Join the Zyvibe affiliate interest list to receive programme details, launch assets, and partner updates through the existing Zyvibe email workflow.</p>
+            </div>
+            <div className="bento-card p-7 md:p-8">
+              {affiliateStatus === 'success' ? (
+                <div className="flex min-h-[190px] flex-col justify-center text-center">
+                  <CheckCircle2 className="mx-auto h-9 w-9 text-emerald-400" />
+                  <h3 className="mt-4 text-xl font-bold text-white">You&apos;re on the partner list.</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-400">We&apos;ll use this address for Zyvibe affiliate programme updates.</p>
                 </div>
               ) : (
-                <form onSubmit={handleNewsletterSubmit} className="flex flex-col gap-3">
-                  <input 
-                    type="email" 
-                    placeholder="you@example.com" 
-                    aria-label="Email address for updates"
-                    required
-                    value={newsletterEmail}
-                    onChange={(e) => setNewsletterEmail(e.target.value)}
-                    disabled={newsletterStatus === 'submitting'}
-                    className="px-4 py-2.5 rounded-lg bg-white/[0.03] border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-[#7c3aed]/50 transition-colors disabled:opacity-50"
-                  />
-                  {newsletterStatus === 'error' && (
-                    <p className="text-red-400 text-[10px] font-medium">Something went wrong. Please try again.</p>
-                  )}
-                  <button 
-                    type="submit" 
-                    aria-label="Join newsletter"
-                    disabled={newsletterStatus === 'submitting'}
-                    className="w-full py-2.5 rounded-lg bg-[#7c3aed] text-white text-[11px] font-bold uppercase tracking-widest hover:bg-[#6d28d9] transition-all cursor-pointer shadow-[0_4px_15px_rgba(124,58,237,0.3)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {newsletterStatus === 'submitting' ? (
-                      <><Loader2 className="w-3 h-3 animate-spin" /><span>Joining...</span></>
-                    ) : (
-                      <span>Join Now</span>
-                    )}
+                <form onSubmit={handleAffiliateSubmit} className="space-y-4">
+                  <label htmlFor="affiliate-email" className="block text-xs font-bold uppercase tracking-[0.16em] text-white">Partner email</label>
+                  <input id="affiliate-email" type="email" required value={affiliateEmail} onChange={(event) => setAffiliateEmail(event.target.value)} disabled={affiliateStatus === 'submitting'} placeholder="you@company.com" className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-violet-400/60 disabled:cursor-not-allowed disabled:opacity-60" />
+                  {affiliateStatus === 'error' && <p className="text-sm text-red-300">We could not save your request. Please email hello@zyvibe.co instead.</p>}
+                  <button type="submit" disabled={affiliateStatus === 'submitting'} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#7c3aed] px-5 py-3.5 text-xs font-bold uppercase tracking-[0.15em] text-white transition hover:bg-[#6d28d9] disabled:cursor-not-allowed disabled:opacity-60">
+                    {affiliateStatus === 'submitting' ? <><Loader2 className="h-4 w-4 animate-spin" /> Joining</> : <>Join the Partner List <ArrowRight className="h-4 w-4" /></>}
                   </button>
                 </form>
               )}
             </div>
-
           </div>
+        </section>
 
-          {/* Bottom Bar */}
-          <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
-            <p className="text-[11px] text-slate-600 font-bold uppercase tracking-widest">
-              © 2025 Zyvibe. Built for the Solo Developer.
-            </p>
-            <div className="flex flex-wrap gap-x-8 gap-y-2 text-[11px] text-slate-600 font-bold uppercase tracking-widest">
-              <a href="#" aria-label="Terms of Service" className="hover:text-white transition-colors">Terms of Service</a>
-              <a href="#" aria-label="Privacy Policy" className="hover:text-white transition-colors">Privacy Policy</a>
-              <a href="#" aria-label="Cookie Policy" className="hover:text-white transition-colors">Cookie Policy</a>
+        <section className="px-5 py-20 md:px-8 md:py-28">
+          <div className="mx-auto max-w-4xl">
+            <div className="text-center">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-300">Product questions</p>
+              <h2 className="mt-4 text-4xl font-bold tracking-[-0.05em] text-white md:text-5xl">Frequently Asked Questions</h2>
+            </div>
+            <div className="mt-12 space-y-3">
+              {faqs.map((faq, index) => {
+                const isOpen = activeFaq === index;
+                return (
+                  <div key={faq.question} className="bento-card overflow-hidden">
+                    <button type="button" onClick={() => setActiveFaq(isOpen ? null : index)} aria-expanded={isOpen} className="flex w-full items-center justify-between gap-5 px-6 py-5 text-left text-base font-semibold text-white transition hover:bg-white/[0.03]">
+                      <span>{faq.question}</span>
+                      {isOpen ? <ChevronUp className="h-5 w-5 shrink-0 text-violet-300" /> : <ChevronDown className="h-5 w-5 shrink-0 text-slate-500" />}
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {isOpen && (
+                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }}>
+                          <p className="border-t border-white/[0.06] px-6 py-5 text-sm leading-relaxed text-slate-400">{faq.answer}</p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })}
             </div>
           </div>
+        </section>
+      </main>
 
+      <footer className="border-t border-white/[0.07] bg-[#09090d] px-5 py-16 md:px-8">
+        <div className="mx-auto grid max-w-7xl gap-12 md:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <a href="https://zyvibe.com" className="text-2xl font-extrabold tracking-[-0.06em] text-white">Zyvibe</a>
+            <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-400">Two focused growth engines for solo developers, creators, and indie founders.</p>
+          </div>
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-[0.16em] text-white">Products</h2>
+            <ul className="mt-5 space-y-3 text-sm text-slate-400">
+              <li><a href={`${APP_URL}footer_cta`} className="transition hover:text-white">Website Builder</a></li>
+              <li><a href={`${SEO_URL}footer_cta`} className="transition hover:text-white">SEO Audit</a></li>
+            </ul>
+          </div>
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-[0.16em] text-white">Ecosystem</h2>
+            <ul className="mt-5 space-y-3 text-sm text-slate-400">
+              <li><a href={AFFILIATE_URL} className="transition hover:text-white">Partner / Affiliate Portal</a></li>
+              <li><a href={BLOG_URL} className="transition hover:text-white">Read the Blog</a></li>
+            </ul>
+          </div>
+          <div id="newsletter">
+            <h2 className="text-xs font-bold uppercase tracking-[0.16em] text-white">Stay in the loop</h2>
+            <p className="mt-5 text-sm leading-relaxed text-slate-400">Get Zyvibe product updates and practical founder playbooks.</p>
+            {newsletterStatus === 'success' ? (
+              <div className="mt-5 flex items-center gap-2 rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200"><CheckCircle2 className="h-4 w-4 shrink-0" /> You&apos;re on the list.</div>
+            ) : (
+              <form onSubmit={handleNewsletterSubmit} className="mt-5 space-y-3">
+                <label htmlFor="newsletter-email" className="sr-only">Email address</label>
+                <input id="newsletter-email" type="email" required value={newsletterEmail} onChange={(event) => setNewsletterEmail(event.target.value)} disabled={newsletterStatus === 'submitting'} placeholder="you@example.com" className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-violet-400/60 disabled:cursor-not-allowed disabled:opacity-60" />
+                {newsletterStatus === 'error' && <p className="text-sm text-red-300">We could not save your email. Please try again.</p>}
+                <button type="submit" disabled={newsletterStatus === 'submitting'} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-xs font-bold uppercase tracking-[0.15em] text-black transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60">
+                  {newsletterStatus === 'submitting' ? <><Loader2 className="h-4 w-4 animate-spin" /> Joining</> : <>Join Now <ArrowRight className="h-4 w-4" /></>}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+        <div className="mx-auto mt-14 flex max-w-7xl flex-col gap-4 border-t border-white/[0.06] pt-7 text-xs font-medium text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+          <p>© 2025 Zyvibe. Built for the Solo Developer.</p>
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            <a href="mailto:hello@zyvibe.co" className="inline-flex items-center gap-1.5 transition hover:text-white"><Mail className="h-3.5 w-3.5" /> hello@zyvibe.co</a>
+            <a href="mailto:support@zyvibe.co" className="transition hover:text-white">Support</a>
+            <a href="mailto:press@zyvibe.co" className="transition hover:text-white">Press</a>
+            <a href={BLOG_URL} className="inline-flex items-center gap-1.5 transition hover:text-white">Playbooks <ExternalLink className="h-3.5 w-3.5" /></a>
+          </div>
         </div>
       </footer>
     </div>
