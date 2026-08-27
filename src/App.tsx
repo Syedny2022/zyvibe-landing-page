@@ -14,6 +14,7 @@ import {
   Mail,
   ExternalLink,
 } from 'lucide-react';
+import LeadForm from './components/LeadForm';
 
 const APP_URL = 'https://app.zyvibe.com/?utm_source=zyvibe_home&utm_medium=';
 const SEO_URL = 'https://seo.zyvibe.com/?utm_source=zyvibe_home&utm_medium=';
@@ -216,6 +217,10 @@ export default function App() {
                 </a>
               </div>
               <p className="mt-5 text-sm text-slate-500">Choose the engine that removes your next growth bottleneck.</p>
+              <div className="mt-12 w-full max-w-md mx-auto">
+                <p className="text-sm text-slate-500 mb-4">Or enter your email to get weekly founder playbooks:</p>
+                <LeadForm />
+              </div>
             </motion.div>
 
             <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 0.08 }} className="grid gap-4">
