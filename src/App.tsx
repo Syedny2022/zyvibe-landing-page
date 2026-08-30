@@ -16,15 +16,13 @@ import {
 } from 'lucide-react';
 import LeadForm from './components/LeadForm';
 
+
 const APP_URL = 'https://app.zyvibe.com/?utm_source=zyvibe_home&utm_medium=';
 const SEO_URL = 'https://seo.zyvibe.com/?utm_source=zyvibe_home&utm_medium=';
 const AFFILIATE_URL = 'https://zyvibe.com/affiliates';
 const BLOG_URL = 'https://blog.zyvibe.com';
-const SUPABASE_URL = 'https://fykcaeuswikyjrjerxns.supabase.co';
-const SUPABASE_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXAiLCJyZWYiOiJmeWtjYWV1c3dpa3lyamVyeG5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MjA5NTksImV4cCI6MjA4OTQ5Njk1OX0.No6HEpwviOZmbZtCrRwTUxDZ4d1tmjDQM-sWU_EKUf4';
-
 type SubmitStatus = 'idle' | 'submitting' | 'success' | 'error';
+
 
 const faqs = [
   {
@@ -54,8 +52,10 @@ const faqs = [
   },
 ];
 
+
 function track(eventName: string, parameters: Record<string, string>) {
   if (typeof window === 'undefined') return;
+
 
   const gtag = (window as unknown as { gtag?: (command: string, event: string, params: Record<string, string>) => void }).gtag;
   if (typeof gtag === 'function') {
@@ -63,26 +63,6 @@ function track(eventName: string, parameters: Record<string, string>) {
   }
 }
 
-async function addSubscriber(email: string, source: string) {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/email_subscribers`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      Prefer: 'return=minimal,resolution=merge-duplicates',
-    },
-    body: JSON.stringify({
-      email,
-      source,
-      subscribed_at: new Date().toISOString(),
-    }),
-  });
-
-  if (!response.ok && response.status !== 409) {
-    throw new Error(`Subscriber request failed with ${response.status}`);
-  }
-}
 
 export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -92,37 +72,31 @@ export default function App() {
   const [affiliateEmail, setAffiliateEmail] = useState('');
   const [affiliateStatus, setAffiliateStatus] = useState<SubmitStatus>('idle');
 
+
   const closeMobileMenu = () => setMobileMenuOpen(false);
+
 
   const handleNewsletterSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!newsletterEmail) return;
 
+
     setNewsletterStatus('submitting');
-    try {
-      await addSubscriber(newsletterEmail.trim().toLowerCase(), 'zyvibe-home-newsletter');
-      track('newsletter_signup', { source: 'zyvibe_home_footer' });
-      setNewsletterEmail('');
-      setNewsletterStatus('success');
-    } catch {
-      setNewsletterStatus('error');
-    }
+    track('newsletter_signup_unavailable', { source: 'zyvibe_home_footer' });
+    setNewsletterStatus('error');
   };
+
 
   const handleAffiliateSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!affiliateEmail) return;
 
+
     setAffiliateStatus('submitting');
-    try {
-      await addSubscriber(affiliateEmail.trim().toLowerCase(), 'zyvibe-affiliate-interest');
-      track('affiliate_interest_signup', { source: 'zyvibe_home_affiliates' });
-      setAffiliateEmail('');
-      setAffiliateStatus('success');
-    } catch {
-      setAffiliateStatus('error');
-    }
+    track('affiliate_interest_signup_unavailable', { source: 'zyvibe_home_affiliates' });
+    setAffiliateStatus('error');
   };
+
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-bg-main text-slate-300 bg-grid-premium">
@@ -132,12 +106,14 @@ export default function App() {
             <span className="text-2xl font-extrabold tracking-[-0.06em]">Zyvibe</span>
           </a>
 
+
           <nav aria-label="Primary navigation" className="hidden items-center gap-7 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 lg:flex">
             <a href={`${APP_URL}header`} className="transition-colors hover:text-white">Website Builder</a>
             <a href={`${SEO_URL}header`} className="transition-colors hover:text-white">SEO Auditor</a>
             <a href={BLOG_URL} className="transition-colors hover:text-white">Playbooks</a>
             <a href={AFFILIATE_URL} className="transition-colors hover:text-white">Affiliate Program</a>
           </nav>
+
 
           <div className="flex items-center gap-3">
             <a
@@ -158,6 +134,7 @@ export default function App() {
             </button>
           </div>
         </div>
+
 
         <AnimatePresence initial={false}>
           {mobileMenuOpen && (
@@ -181,6 +158,7 @@ export default function App() {
           )}
         </AnimatePresence>
       </header>
+
 
       <main>
         <section className="relative isolate px-5 pb-20 pt-16 md:px-8 md:pb-32 md:pt-24">
@@ -223,6 +201,7 @@ export default function App() {
               </div>
             </motion.div>
 
+
             <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 0.08 }} className="grid gap-4">
               <div className="bento-card relative overflow-hidden p-7 md:p-8">
                 <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-violet-500/15 blur-3xl" />
@@ -252,6 +231,7 @@ export default function App() {
           </div>
         </section>
 
+
         <section id="website-builder" className="border-y border-white/[0.07] bg-white/[0.015] px-5 py-20 md:px-8 md:py-28">
           <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
             <div className="bento-card p-8 md:p-10">
@@ -269,6 +249,7 @@ export default function App() {
             </div>
           </div>
         </section>
+
 
         <section id="seo-auditor" className="px-5 py-20 md:px-8 md:py-28">
           <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
@@ -288,6 +269,7 @@ export default function App() {
           </div>
         </section>
 
+
         <section id="affiliates" className="border-y border-white/[0.07] bg-gradient-to-br from-violet-500/[0.10] via-transparent to-indigo-500/[0.10] px-5 py-20 md:px-8 md:py-28">
           <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
             <div>
@@ -306,7 +288,7 @@ export default function App() {
                 <form onSubmit={handleAffiliateSubmit} className="space-y-4">
                   <label htmlFor="affiliate-email" className="block text-xs font-bold uppercase tracking-[0.16em] text-white">Partner email</label>
                   <input id="affiliate-email" type="email" required value={affiliateEmail} onChange={(event) => setAffiliateEmail(event.target.value)} disabled={affiliateStatus === 'submitting'} placeholder="you@company.com" className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-violet-400/60 disabled:cursor-not-allowed disabled:opacity-60" />
-                  {affiliateStatus === 'error' && <p className="text-sm text-red-300">We could not save your request. Please email hello@zyvibe.co instead.</p>}
+                  {affiliateStatus === 'error' && <p className="text-sm text-red-300">Submission temporarily unavailable. Lead capture is coming online shortly.</p>}
                   <button type="submit" disabled={affiliateStatus === 'submitting'} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#7c3aed] px-5 py-3.5 text-xs font-bold uppercase tracking-[0.15em] text-white transition hover:bg-[#6d28d9] disabled:cursor-not-allowed disabled:opacity-60">
                     {affiliateStatus === 'submitting' ? <><Loader2 className="h-4 w-4 animate-spin" /> Joining</> : <>Join the Partner List <ArrowRight className="h-4 w-4" /></>}
                   </button>
@@ -315,6 +297,7 @@ export default function App() {
             </div>
           </div>
         </section>
+
 
         <section className="px-5 py-20 md:px-8 md:py-28">
           <div className="mx-auto max-w-4xl">
@@ -346,6 +329,7 @@ export default function App() {
         </section>
       </main>
 
+
       <footer className="border-t border-white/[0.07] bg-[#09090d] px-5 py-16 md:px-8">
         <div className="mx-auto grid max-w-7xl gap-12 md:grid-cols-2 lg:grid-cols-4">
           <div>
@@ -375,7 +359,7 @@ export default function App() {
               <form onSubmit={handleNewsletterSubmit} className="mt-5 space-y-3">
                 <label htmlFor="newsletter-email" className="sr-only">Email address</label>
                 <input id="newsletter-email" type="email" required value={newsletterEmail} onChange={(event) => setNewsletterEmail(event.target.value)} disabled={newsletterStatus === 'submitting'} placeholder="you@example.com" className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-violet-400/60 disabled:cursor-not-allowed disabled:opacity-60" />
-                {newsletterStatus === 'error' && <p className="text-sm text-red-300">We could not save your email. Please try again.</p>}
+                {newsletterStatus === 'error' && <p className="text-sm text-red-300">Submission temporarily unavailable. Lead capture is coming online shortly.</p>}
                 <button type="submit" disabled={newsletterStatus === 'submitting'} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-xs font-bold uppercase tracking-[0.15em] text-black transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60">
                   {newsletterStatus === 'submitting' ? <><Loader2 className="h-4 w-4 animate-spin" /> Joining</> : <>Join Now <ArrowRight className="h-4 w-4" /></>}
                 </button>
