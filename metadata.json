@@ -1,5 +1,7 @@
 {
-  "name": "Zyvibe Landing Page",
-  "description": "A high-conversion 3D animated landing page for Zyvibe with voice interaction and lead capture.",
-  "requestFramePermissions": ["microphone"]
+  "name": "Zyvibe \u2014 AI Website Builder & SEO Auditor",
+  "description": "Build a production-ready AI website or run a deep-dive SEO revenue audit in under 60 seconds. High-converting SaaS lead generation hub for solo founders and digital creators.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
 }

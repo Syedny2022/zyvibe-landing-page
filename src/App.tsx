@@ -117,10 +117,11 @@ export default function App() {
 
           <div className="flex items-center gap-3">
             <a
-              href={`${AFFILIATE_URL}?utm_source=zyvibe_home&utm_medium=header_cta`}
+              href={`${APP_URL}header_cta`}
+              onClick={() => track('select_content', { content_type: 'product_cta', item_id: 'website_builder_header' })}
               className="hidden rounded-lg bg-[#7c3aed] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white shadow-[0_4px_20px_rgba(124,58,237,0.35)] transition-all hover:bg-[#6d28d9] sm:inline-flex"
             >
-              Start Free Today
+              Start Free Trial
             </a>
             <button
               type="button"
@@ -152,7 +153,7 @@ export default function App() {
                 <a href={`${SEO_URL}header_mobile`} onClick={closeMobileMenu} className="rounded-lg px-3 py-3 hover:bg-white/[0.05] hover:text-white">SEO Auditor</a>
                 <a href={BLOG_URL} onClick={closeMobileMenu} className="rounded-lg px-3 py-3 hover:bg-white/[0.05] hover:text-white">Playbooks</a>
                 <a href={AFFILIATE_URL} onClick={closeMobileMenu} className="rounded-lg px-3 py-3 hover:bg-white/[0.05] hover:text-white">Affiliate Program</a>
-                <a href={`${AFFILIATE_URL}?utm_source=zyvibe_home&utm_medium=header_cta_mobile`} onClick={closeMobileMenu} className="mt-2 rounded-lg bg-[#7c3aed] px-3 py-3 text-center text-xs font-bold uppercase tracking-widest text-white">Start Free Today</a>
+                <a href={`${APP_URL}header_cta_mobile`} onClick={() => { closeMobileMenu(); track('select_content', { content_type: 'product_cta', item_id: 'website_builder_header_mobile' }); }} className="mt-2 rounded-lg bg-[#7c3aed] px-3 py-3 text-center text-xs font-bold uppercase tracking-widest text-white">Start Free Trial</a>
               </div>
             </motion.nav>
           )}
@@ -173,10 +174,10 @@ export default function App() {
                 Built for solo founders &amp; digital creators
               </p>
               <h1 className="max-w-4xl text-5xl font-extrabold leading-[0.98] tracking-[-0.065em] text-white md:text-7xl lg:text-8xl">
-                One Founder. <span className="bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">Two Engines.</span> 60 Seconds.
+                Build an AI Website. <span className="bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">Automate SEO.</span> 60 Seconds.
               </h1>
               <p className="mt-8 max-w-2xl text-lg leading-relaxed text-slate-300 md:text-xl">
-                Stop wrestling with bloated enterprise tools. Zyvibe is the ultimate platform for indie hackers and social creators. Vibe-code a production-ready website or run a deep-dive SEO revenue audit—each in under 60 seconds.
+                Stop wrestling with bloated tools. Launch a production-ready AI website or expose every SEO revenue leak—both in under 60 seconds. No agency. No stack. Just results.
               </p>
               <div className="mt-10 flex flex-col gap-3 sm:flex-row">
                 <a
@@ -195,9 +196,12 @@ export default function App() {
                 </a>
               </div>
               <p className="mt-5 text-sm text-slate-500">Choose the engine that removes your next growth bottleneck.</p>
-              <div className="mt-12 w-full max-w-md mx-auto">
-                <p className="text-sm text-slate-500 mb-4">Or enter your email to get weekly founder playbooks:</p>
-                <LeadForm />
+              <div className="mt-10 w-full max-w-md">
+                <div className="rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-500/[0.12] via-white/[0.02] to-indigo-500/[0.12] p-6 shadow-[0_0_60px_rgba(124,58,237,0.18)] ring-1 ring-white/[0.06]">
+                  <p className="text-sm font-bold text-white mb-0.5">Start Free — No credit card required</p>
+                  <p className="text-xs text-slate-400 mb-5">Instant access to the Website Builder and SEO Auditor.</p>
+                  <LeadForm />
+                </div>
               </div>
             </motion.div>
 

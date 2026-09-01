@@ -1,56 +1,109 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, CheckCircle2 } from 'lucide-react';
+
 const LeadForm: React.FC = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
-
-
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email) return;
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+    if (!trimmedName || !trimmedEmail) return;
 
+    // Basic client-side email check
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setErrorMsg('Please enter a valid email address.');
+      setStatus('error');
+      return;
+    }
 
     setStatus('submitting');
-    setStatus('error');
+    setErrorMsg('');
+
+    try {
+      const res = await fetch('/api/lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmedName, email: trimmedEmail, source_page: 'hero' }),
+      });
+      const data = await res.json() as { success: boolean; error?: string };
+      if (data.success) {
+        setStatus('success');
+      } else {
+        setErrorMsg(data.error ?? 'Something went wrong. Please try again.');
+        setStatus('error');
+      }
+    } catch {
+      setErrorMsg('Network error — please check your connection and try again.');
+      setStatus('error');
+    }
   };
 
+  if (status === 'success') {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="flex flex-col items-center gap-3 py-6 text-center"
+      >
+        <CheckCircle2 className="h-10 w-10 text-violet-400" strokeWidth={1.5} />
+        <p className="text-base font-semibold text-white">You&apos;re in!</p>
+        <p className="text-sm text-slate-400">Check your inbox for access details.</p>
+      </motion.div>
+    );
+  }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md">
+    <form onSubmit={handleSubmit} className="space-y-4 w-full">
       <div className="flex flex-col gap-1.5">
-        <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+        <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest ml-1">
+          Full Name
+        </label>
         <input
           type="text"
-          placeholder="John Doe"
+          placeholder="Jane Smith"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full px-4 py-2.5 bg-white/[0.03] border border-white/10 rounded-lg text-white placeholder:text-slate-600 focus:outline-none focus:border-brand-purple/50 focus:ring-1 focus:ring-indigo-500/50 transition-all text-sm"
+          className="w-full px-4 py-3 bg-white/[0.04] border border-white/10 rounded-lg text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/40 transition-all text-sm"
           required
+          autoComplete="name"
         />
       </div>
       <div className="flex flex-col gap-1.5">
-        <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest ml-1">Work Email</label>
+        <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest ml-1">
+          Work Email
+        </label>
         <input
           type="email"
-          placeholder="john@company.com"
+          placeholder="jane@company.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full px-4 py-2.5 bg-white/[0.03] border border-white/10 rounded-lg text-white placeholder:text-slate-600 focus:outline-none focus:border-brand-purple/50 focus:ring-1 focus:ring-indigo-500/50 transition-all text-sm"
+          className="w-full px-4 py-3 bg-white/[0.04] border border-white/10 rounded-lg text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/40 transition-all text-sm"
           required
+          autoComplete="email"
         />
       </div>
       <button
         type="submit"
         disabled={status === 'submitting'}
-        className="btn-premium w-full mt-2 disabled:opacity-50"
+        className="btn-premium w-full mt-1 py-3.5 disabled:opacity-50"
+        onClick={() => {
+          if (typeof window !== 'undefined') {
+            const gtag = (window as unknown as { gtag?: (c: string, e: string, p: Record<string,string>) => void }).gtag;
+            if (typeof gtag === 'function') {
+              gtag('event', 'generate_lead', { method: 'hero_form' });
+            }
+          }
+        }}
       >
         {status === 'submitting' ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
-            <span>Processing...</span>
+            <span>Starting your trial…</span>
           </>
         ) : (
           <>
@@ -60,14 +113,19 @@ const LeadForm: React.FC = () => {
         )}
       </button>
       {status === 'error' && (
-        <p className="text-red-400 text-[11px] text-center font-medium">Submission temporarily unavailable. Lead capture is coming online shortly.</p>
+        <p className="text-red-400 text-[11px] text-center font-medium">
+          {errorMsg || 'Something went wrong. Please try again.'}
+        </p>
       )}
-      <p className="text-[11px] text-slate-500 text-center mt-4">
-        By signing up, you agree to our <a href="#" className="underline hover:text-slate-300">Terms of Service</a>.
+      <p className="text-[11px] text-slate-500 text-center pt-1">
+        No credit card required.{' '}
+        <a href="#" className="underline hover:text-slate-300">
+          Terms of Service
+        </a>{' '}
+        apply.
       </p>
     </form>
   );
 };
-
 
 export default LeadForm;
