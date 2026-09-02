@@ -1,0 +1,11 @@
+# Cloudflare Pages project configuration
+# Bind the D1 database so Pages Functions can insert leads.
+# Run `wrangler d1 execute zyvibe_leads --file=./schema.sql` once to create the table.
+
+name = "zyvibe-landing-page"
+compatibility_date = "2024-09-23"
+
+[[d1_databases]]
+binding = "ZYVIBE_LEADS"
+database_name = "zyvibe_leads"
+database_id = "5e57c9a1-168a-4a0f-a5f7-a7400f884740"
